@@ -6,6 +6,7 @@
  * stock images - no AI involved.
  */
 
+import { CATALOG_SCOPES } from './auth'
 import type { EbayClient } from './client'
 
 export const MAX_TITLE_LENGTH = 80
@@ -42,7 +43,8 @@ function firstMpn(value: string | string[] | undefined): string | null {
 export async function findByGtin(client: EbayClient, gtin: string): Promise<CatalogMatch | null> {
   const data = await client.get<{ productSummaries?: ProductSummary[] }>(
     '/commerce/catalog/v1/product_summary/search',
-    { params: { gtin, limit: 5 }, token: 'app' },
+    // The Catalog API needs its own scope on top of the basic one.
+    { params: { gtin, limit: 5 }, token: 'app', scopes: CATALOG_SCOPES },
   )
 
   const best = data.productSummaries?.[0]

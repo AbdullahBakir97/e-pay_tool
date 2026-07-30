@@ -20,8 +20,9 @@ import type { AppConfig } from '@main/config'
 import type { ProductRepository, ProductUpdate } from '@main/db/products'
 import { priceResearch } from '@main/ebay/browse'
 import type { CatalogMatch } from '@main/ebay/catalog'
+import type { Capability } from '@main/ebay/capabilities'
 import { findByGtin } from '@main/ebay/catalog'
-import type { EbayClient } from '@main/ebay/client'
+import { asCapabilityError, type EbayClient } from '@main/ebay/client'
 import type { TokenSource } from '@main/ebay/client'
 import { createOrUpdateOffer, publishOffer, upsertInventoryItem } from '@main/ebay/inventory'
 import { uploadImage } from '@main/ebay/media'
@@ -51,6 +52,7 @@ export class Pipeline {
   private readonly ai: AIProvider
   private readonly repo: ProductRepository
   private readonly logger: Pick<Console, 'warn' | 'error'>
+  private readonly unavailable = new Set<Capability>()
 
   constructor(deps: PipelineDeps) {
     this.config = deps.config
@@ -93,9 +95,11 @@ export class Pipeline {
       changes.condition = this.config.defaultCondition
     }
 
-    // 1. Catalog lookup by barcode.
-    if (product.gtin && !product.title) {
-      const match = await findByGtin(this.client, product.gtin)
+    // 1. Catalog lookup by barcode. A missing entitlement is not a
+    //    product failure - it just means this step cannot contribute.
+    const gtin = product.gtin
+    if (gtin && !product.title) {
+      const match = await this.optional('catalog', () => findByGtin(this.client, gtin))
       if (match) this.applyCatalog(product, match, changes)
     }
 
@@ -107,13 +111,17 @@ export class Pipeline {
     // 3. Category + required aspects.
     const title = changes.title ?? product.title
     if (!product.categoryId && !changes.categoryId && title) {
-      const suggestion = await suggestCategory(this.client, title)
+      const suggestion = await this.optional('taxonomy', () =>
+        suggestCategory(this.client, title),
+      )
       if (suggestion) changes.categoryId = suggestion[0]
     }
 
     // 4. Price research.
     if (product.price === null) {
-      const stats = await priceResearch(this.client, { gtin: product.gtin, query: title })
+      const stats = await this.optional('browse', () =>
+        priceResearch(this.client, { gtin: product.gtin, query: title }),
+      )
       if (stats) {
         changes.priceStats = stats
         changes.price = suggestPrice(stats, this.config.undercutPercent)
@@ -143,6 +151,33 @@ export class Pipeline {
     }
 
     return changes
+  }
+
+  /**
+   * Runs an enrichment step that the application may not be entitled to
+   * call. A missing entitlement yields null and is recorded once for the
+   * whole session; every other error still propagates and fails the
+   * product, because that is a genuine fault worth showing.
+   */
+  private async optional<T>(capability: Capability, step: () => Promise<T>): Promise<T | null> {
+    if (this.unavailable.has(capability)) return null
+    try {
+      return await step()
+    } catch (error) {
+      const unavailable = asCapabilityError(error, capability)
+      if (!unavailable) throw error
+
+      if (!this.unavailable.has(capability)) {
+        this.unavailable.add(capability)
+        this.logger.warn(`eBay capability unavailable: ${capability}`, unavailable.message)
+      }
+      return null
+    }
+  }
+
+  /** Capabilities eBay has refused during this session. */
+  get missingCapabilities(): Capability[] {
+    return [...this.unavailable]
   }
 
   private applyCatalog(product: Product, match: CatalogMatch, changes: ProductUpdate): void {

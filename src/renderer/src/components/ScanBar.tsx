@@ -5,6 +5,7 @@ interface Props {
   onAddFromPhotos: () => void
   onPublishAllReady: () => void
   onOpenSettings: () => void
+  onOpenDiagnostics: () => void
   readyCount: number
   busy: boolean
 }
@@ -19,6 +20,7 @@ export function ScanBar({
   onAddFromPhotos,
   onPublishAllReady,
   onOpenSettings,
+  onOpenDiagnostics,
   readyCount,
   busy,
 }: Props): JSX.Element {
@@ -53,6 +55,9 @@ export function ScanBar({
       </button>
       <button type="button" onClick={onPublishAllReady} disabled={readyCount === 0 || busy}>
         {readyCount > 0 ? `${readyCount} Artikel einstellen` : 'Alle „Bereit“ einstellen'}
+      </button>
+      <button type="button" onClick={onOpenDiagnostics}>
+        Verbindung prüfen
       </button>
       <button type="button" onClick={onOpenSettings}>
         Einstellungen

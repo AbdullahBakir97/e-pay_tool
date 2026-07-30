@@ -174,13 +174,20 @@ export function DetailPanel({ product, onChanged }: Props): JSX.Element {
           value={form.price}
           onChange={(event) => set('price', event.target.value)}
         />
-        {stats && (
+        {stats ? (
           <span className="hint">
             Markt: {stats.minimum.toFixed(2)}–{stats.maximum.toFixed(2)} {stats.currency}, Median{' '}
             {stats.median.toFixed(2)} ({stats.sampleSize} Angebote
             {stats.outliersRemoved > 0 && `, ${stats.outliersRemoved} Ausreißer entfernt`})
           </span>
+        ) : (
+          <span className="hint">Keine automatische Marktrecherche verfügbar.</span>
         )}
+        <div className="actions">
+          <button type="button" onClick={() => void api.openMarketSearch(product.id)}>
+            Marktpreise prüfen (verkaufte Artikel)
+          </button>
+        </div>
       </div>
 
       <div className="field">

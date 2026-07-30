@@ -4,6 +4,7 @@ import { ProductState, STATE_LABELS, type AppStatus, type Product } from '@share
 
 import { api } from './api'
 import { DetailPanel } from './components/DetailPanel'
+import { DiagnosticsDialog } from './components/DiagnosticsDialog'
 import { ProductGrid } from './components/ProductGrid'
 import { ScanBar } from './components/ScanBar'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -13,6 +14,7 @@ export function App(): JSX.Element {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [status, setStatus] = useState<AppStatus | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -86,6 +88,11 @@ export function App(): JSX.Element {
           eBay-Zugangsdaten fehlen – bitte .env nach dem Vorbild von .env.example anlegen.
         </div>
       )}
+      {status?.missingCapabilities.map((missing) => (
+        <div className="banner banner--warning" key={missing.capability}>
+          {missing.hint}
+        </div>
+      ))}
       {status?.aiError && (
         <div className="banner banner--warning">
           KI nicht verfügbar ({status.aiError}). Barcode-Artikel funktionieren weiterhin; Artikel
@@ -114,6 +121,7 @@ export function App(): JSX.Element {
         onAddFromPhotos={() => void onAddFromPhotos()}
         onPublishAllReady={() => void onPublishAllReady()}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenDiagnostics={() => setDiagnosticsOpen(true)}
         readyCount={readyCount}
         busy={busy}
       />
@@ -145,6 +153,14 @@ export function App(): JSX.Element {
       </div>
 
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {diagnosticsOpen && (
+        <DiagnosticsDialog
+          onClose={() => {
+            setDiagnosticsOpen(false)
+            void api.getStatus().then(setStatus)
+          }}
+        />
+      )}
     </div>
   )
 }

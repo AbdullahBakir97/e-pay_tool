@@ -75,6 +75,10 @@ export class FakeEbayClient {
     return this.request<T>('PUT', path, options)
   }
 
+  delete<T>(path: string, options?: RequestOptions): Promise<T> {
+    return this.request<T>('DELETE', path, options)
+  }
+
   /** Structural cast: tests only exercise the request surface. */
   asClient(): EbayClient {
     return this as unknown as EbayClient

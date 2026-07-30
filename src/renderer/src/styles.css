@@ -350,3 +350,104 @@ tbody tr.selected {
   margin-top: 0;
   font-size: 17px;
 }
+
+.modal--wide {
+  width: 720px;
+}
+
+/* ---------- diagnostics ---------- */
+
+.checks {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.check {
+  display: flex;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+
+.check__icon {
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.check--ok .check__icon {
+  background: #2e7d32;
+}
+.check--warn .check__icon {
+  background: #b8860b;
+}
+.check--fail .check__icon {
+  background: var(--danger);
+}
+.check--skipped .check__icon {
+  background: #9aa3af;
+}
+
+.check--ok {
+  background: var(--state-ready);
+  border-color: #a9d5ab;
+}
+.check--warn {
+  background: var(--state-needs-info);
+  border-color: #e3cf7a;
+}
+.check--fail {
+  background: var(--state-failed);
+  border-color: #e0a9a3;
+}
+
+.check__label {
+  font-weight: 600;
+}
+
+.check__detail {
+  font-size: 12.5px;
+  color: #454c56;
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.check__hint {
+  font-size: 12.5px;
+  margin-top: 5px;
+  padding-left: 2px;
+  color: #1c1f24;
+}
+
+.summary {
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: 6px;
+  margin: 0 0 14px;
+}
+
+.summary--ok {
+  background: var(--state-ready);
+}
+.summary--warn {
+  background: var(--state-needs-info);
+}
+.summary--fail {
+  background: var(--state-failed);
+  color: var(--danger);
+}
+
+.section {
+  font-size: 14px;
+  margin: 4px 0 8px;
+}

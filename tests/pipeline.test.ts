@@ -6,7 +6,7 @@ import { productIdentificationSchema } from '@main/ai/schemas'
 import { Pipeline } from '@main/core/pipeline'
 import type { ProductRepository } from '@main/db/products'
 import type { Db } from '@main/db/schema'
-import type { TokenSource } from '@main/ebay/client'
+import { EbayApiError, type TokenSource } from '@main/ebay/client'
 import { DataSource, ProductState } from '@shared/types'
 
 import {
@@ -281,6 +281,105 @@ describe('required aspects', () => {
     await pipeline.enrich(id)
 
     expect(repo.get(id)?.state).toBe(ProductState.Ready)
+  })
+})
+
+describe('missing eBay entitlements', () => {
+  /** A client that refuses one path with 403, as eBay does for an ungranted API. */
+  function clientRefusing(fragment: string): FakeEbayClient {
+    const client = new FakeEbayClient(testConfig(), BASE_RESPONSES)
+    const original = client.request.bind(client)
+    client.request = async (method, path, options) => {
+      if (path.includes(fragment)) throw new EbayApiError(403, 'Insufficient permissions')
+      return original(method, path, options)
+    }
+    return client
+  }
+
+  it('keeps working when the Catalog API is not granted', async () => {
+    // Without this, every scanned barcode would land in FAILED and the app
+    // would look broken when in fact one permission is missing.
+    const ai = new FakeAI(
+      productIdentificationSchema.parse({
+        productName: { value: 'iPhone 13', confidence: 0.95 },
+        brand: { value: 'Apple', confidence: 0.97 },
+      }),
+      { title: 'Apple iPhone 13', descriptionHtml: '<p>x</p>' },
+    )
+    const { pipeline } = buildPipeline(
+      BASE_RESPONSES,
+      ai,
+      clientRefusing('product_summary/search'),
+    )
+    const id = repo.create({ gtin: '0194252707975', photoPaths: ['/tmp/a.jpg'] })
+
+    await pipeline.enrich(id)
+
+    const product = repo.get(id)
+    expect(product?.state).not.toBe(ProductState.Failed)
+    expect(product?.state).toBe(ProductState.Ready)
+    // The AI path took over.
+    expect(product?.source).toBe(DataSource.Ai)
+    expect(ai.identifyCalls).toHaveLength(1)
+    expect(pipeline.missingCapabilities).toContain('catalog')
+  })
+
+  it('leaves the price for the user when the Browse API is not granted', async () => {
+    const { pipeline } = buildPipeline(
+      BASE_RESPONSES,
+      new FakeAI(),
+      clientRefusing('item_summary/search'),
+    )
+    const id = repo.create({ gtin: '0194252707975' })
+
+    await pipeline.enrich(id)
+
+    const product = repo.get(id)
+    expect(product?.state).toBe(ProductState.NeedsInfo) // missing price blocks
+    expect(product?.price).toBeNull()
+    expect(product?.lastError).toBeNull() // not an error, just a limitation
+    expect(product?.title).toBe('Apple iPhone 13 128GB Midnight') // catalog still worked
+    expect(pipeline.missingCapabilities).toContain('browse')
+  })
+
+  it('only probes a refused API once per session', async () => {
+    // Re-asking eBay for a permission it already refused would waste a
+    // call from the daily quota on every single product.
+    let attempts = 0
+    const client = new FakeEbayClient(testConfig(), BASE_RESPONSES)
+    const original = client.request.bind(client)
+    client.request = async (method, path, options) => {
+      if (path.includes('item_summary/search')) {
+        attempts += 1
+        throw new EbayApiError(403, 'Insufficient permissions')
+      }
+      return original(method, path, options)
+    }
+
+    const { pipeline } = buildPipeline(BASE_RESPONSES, new FakeAI(), client)
+    for (let index = 0; index < 3; index += 1) {
+      await pipeline.enrich(repo.create({ gtin: `000000000000${index}` }))
+    }
+
+    expect(attempts).toBe(1)
+  })
+
+  it('still fails the product on a genuine server error', async () => {
+    // A 500 is a real fault and must not be silently downgraded to
+    // "feature unavailable" - otherwise outages would look like success.
+    const client = new FakeEbayClient(testConfig(), BASE_RESPONSES)
+    const original = client.request.bind(client)
+    client.request = async (method, path, options) => {
+      if (path.includes('product_summary/search')) throw new EbayApiError(500, 'server error')
+      return original(method, path, options)
+    }
+    const { pipeline } = buildPipeline(BASE_RESPONSES, new FakeAI(), client)
+    const id = repo.create({ gtin: '0194252707975' })
+
+    await pipeline.enrich(id)
+
+    expect(repo.get(id)?.state).toBe(ProductState.Failed)
+    expect(pipeline.missingCapabilities).toHaveLength(0)
   })
 })
 

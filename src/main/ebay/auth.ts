@@ -24,12 +24,42 @@ export const USER_SCOPES = [
   'https://api.ebay.com/oauth/api_scope/sell.inventory',
   'https://api.ebay.com/oauth/api_scope/sell.account',
 ]
+
+/** Enough for Browse and Taxonomy. */
 export const APP_SCOPES = ['https://api.ebay.com/oauth/api_scope']
+
+/**
+ * The Catalog API needs its own scope on top of the basic one.
+ *
+ * It is deliberately requested as a *separate* token: eBay rejects the
+ * whole token request when the application is not entitled to one of the
+ * requested scopes, so merging this into APP_SCOPES would take Taxonomy
+ * and Browse down with it whenever catalog access has not been granted.
+ */
+export const CATALOG_SCOPES = [
+  'https://api.ebay.com/oauth/api_scope',
+  'https://api.ebay.com/oauth/api_scope/commerce.catalog.readonly',
+]
 
 const EXPIRY_SKEW_MS = 60_000
 const LOGIN_TIMEOUT_MS = 300_000
 
 export class AuthError extends Error {}
+
+/**
+ * Raised when eBay refuses to issue a token for the requested scopes -
+ * i.e. the application is not entitled to that API. Distinct from a
+ * transport failure so callers can degrade instead of retrying.
+ */
+export class ScopeNotGrantedError extends AuthError {
+  constructor(
+    readonly scopes: string[],
+    message: string,
+  ) {
+    super(message)
+    this.name = 'ScopeNotGrantedError'
+  }
+}
 
 interface TokenResponse {
   access_token: string
@@ -46,11 +76,16 @@ export interface Browser {
   open(url: string): Promise<void>
 }
 
+interface CachedToken {
+  token: string
+  expiry: number
+}
+
 export class EbayAuth {
   private userToken: string | null = null
   private userTokenExpiry = 0
-  private appToken: string | null = null
-  private appTokenExpiry = 0
+  /** Application tokens are cached per scope set, not globally. */
+  private readonly appTokens = new Map<string, CachedToken>()
   private readonly refreshKey: string
 
   constructor(
@@ -84,18 +119,36 @@ export class EbayAuth {
     return this.userToken
   }
 
-  /** Valid application token (client credentials). */
-  async getAppToken(): Promise<string> {
-    if (this.appToken && Date.now() < this.appTokenExpiry - EXPIRY_SKEW_MS) {
-      return this.appToken
+  /** Valid application token (client credentials) for the given scopes. */
+  async getAppToken(scopes: string[] = APP_SCOPES): Promise<string> {
+    const key = [...scopes].sort().join(' ')
+    const cached = this.appTokens.get(key)
+    if (cached && Date.now() < cached.expiry - EXPIRY_SKEW_MS) {
+      return cached.token
     }
-    const payload = await this.tokenRequest({
-      grant_type: 'client_credentials',
-      scope: APP_SCOPES.join(' '),
+
+    let payload: TokenResponse
+    try {
+      payload = await this.tokenRequest({
+        grant_type: 'client_credentials',
+        scope: scopes.join(' '),
+      })
+    } catch (error) {
+      // eBay answers an unentitled scope with invalid_scope / invalid_client.
+      if (error instanceof AuthError && /invalid_scope|invalid_client/i.test(error.message)) {
+        throw new ScopeNotGrantedError(
+          scopes,
+          `eBay hat die Berechtigung für diese API nicht erteilt (${scopes.join(', ')}).`,
+        )
+      }
+      throw error
+    }
+
+    this.appTokens.set(key, {
+      token: payload.access_token,
+      expiry: Date.now() + (payload.expires_in ?? 7200) * 1000,
     })
-    this.appToken = payload.access_token
-    this.appTokenExpiry = Date.now() + (payload.expires_in ?? 7200) * 1000
-    return this.appToken
+    return payload.access_token
   }
 
   /** Open the browser consent screen and wait for the redirect. */

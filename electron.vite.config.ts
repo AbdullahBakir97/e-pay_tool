@@ -14,7 +14,11 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: { index: resolve('src/main/index.ts') },
+        input: {
+          index: resolve('src/main/index.ts'),
+          // Standalone CLI entry point; shares every module with the app.
+          doctor: resolve('src/main/doctor.ts'),
+        },
       },
     },
   },

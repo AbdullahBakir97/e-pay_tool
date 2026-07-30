@@ -9,12 +9,15 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 
 import { isConfigured, type AppConfig } from '@main/config'
+import { buildMarketSearchUrl } from '@main/core/marketLink'
 import type { Pipeline } from '@main/core/pipeline'
 import { checkDraft } from '@main/core/quality'
 import type { TaskQueue } from '@main/core/queue'
 import type { ProductRepository } from '@main/db/products'
 import type { EbayAuth } from '@main/ebay/auth'
+import { CAPABILITY_HINTS } from '@main/ebay/capabilities'
 import type { EbayClient } from '@main/ebay/client'
+import { runDiagnostics, runPublishDryRun } from '@main/ebay/diagnostics'
 import { listPolicies } from '@main/ebay/inventory'
 import { aspectsForCategory } from '@main/ebay/taxonomy'
 import { getPolicyIds, hasCompletePolicies, setPolicyIds } from '@main/prefs'
@@ -126,7 +129,28 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     marketplace: config.ebayMarketplace,
     aiProvider: deps.aiError ? 'none' : config.aiProvider,
     aiError: deps.aiError,
+    missingCapabilities: pipeline.missingCapabilities.map((capability) => ({
+      capability,
+      hint: CAPABILITY_HINTS[capability],
+    })),
   }))
+
+  ipcMain.handle(IPC.runDiagnostics, () =>
+    runDiagnostics({ config, auth, client, policyIds: getPolicyIds() }),
+  )
+
+  ipcMain.handle(IPC.runWriteTest, () =>
+    runPublishDryRun({ config, auth, client, policyIds: getPolicyIds() }),
+  )
+
+  ipcMain.handle(IPC.openMarketSearch, async (_event, productId: number) => {
+    const product = repo.get(productId)
+    if (!product) return false
+    const url = buildMarketSearchUrl(product, config.ebayMarketplace)
+    if (!url) return false
+    await shell.openExternal(url)
+    return true
+  })
 
   ipcMain.handle(IPC.signIn, async () => {
     await auth.interactiveLogin()

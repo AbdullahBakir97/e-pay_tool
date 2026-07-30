@@ -135,6 +135,18 @@ export interface AppStatus {
   aiProvider: string
   /** Set when the configured AI provider could not be started. */
   aiError: string | null
+  /** eBay APIs this application is not entitled to call, with reasons. */
+  missingCapabilities: Array<{ capability: string; hint: string }>
+}
+
+export type CheckStatus = 'ok' | 'warn' | 'fail' | 'skipped'
+
+export interface CheckResult {
+  id: string
+  label: string
+  status: CheckStatus
+  detail: string
+  hint?: string
 }
 
 export const EBAY_CONDITIONS: ReadonlyArray<{ code: string; label: string }> = [

@@ -752,7 +752,28 @@ def build(output: Path) -> None:
         ],
         [CONTENT_W * 0.24, CONTENT_W * 0.76],
     ))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
+    story.append(p("Kosten", "h2"))
+    story.append(p(
+        "Die eBay-Schnittstellen selbst sind <b>kostenlos</b> – es gibt weder eine "
+        "Grundgebühr noch eine Abrechnung pro Abfrage. Die üblichen eBay-Verkaufsgebühren "
+        "bleiben unverändert; die Anwendung ändert daran nichts. Einzige laufende Kosten "
+        "sind wenige Euro im Monat für die KI, und auch die fallen nur für Artikel an, die "
+        "der Katalog nicht beantworten kann."
+    ))
+    story.append(Spacer(1, 6))
+
+    story.append(p("Abbildung 6: Die eingebaute Verbindungsprüfung", "figure"))
+    story.append(framed(screenshot("06-diagnostics.png")))
+    story.append(p(
+        "Die Anwendung prüft jeden Schritt der eBay-Verbindung einzeln und nennt bei jedem "
+        "Problem den konkreten nächsten Schritt – hier am Beispiel fehlender Zugangsdaten. "
+        "Zusätzlich kann auf Wunsch ein echtes Testangebot angelegt und sofort wieder "
+        "gelöscht werden; es wird dabei nichts veröffentlicht.",
+        "caption",
+    ))
+
+    story.append(PageBreak())
 
     story.append(p("8 &nbsp; Grenzen und offene Punkte", "h1"))
     story.append(Rule(CONTENT_W))

@@ -29,6 +29,9 @@ const api: EpayApi = {
   getPolicies: () => ipcRenderer.invoke(IPC.getPolicies),
   getPolicyIds: () => ipcRenderer.invoke(IPC.getPolicyIds),
   setPolicyIds: (ids: PolicyIds) => ipcRenderer.invoke(IPC.setPolicyIds, ids),
+  runDiagnostics: () => ipcRenderer.invoke(IPC.runDiagnostics),
+  runWriteTest: () => ipcRenderer.invoke(IPC.runWriteTest),
+  openMarketSearch: (productId: number) => ipcRenderer.invoke(IPC.openMarketSearch, productId),
   onProductsChanged: (listener: () => void) => {
     const handler = (): void => listener()
     ipcRenderer.on(IPC.productsChanged, handler)

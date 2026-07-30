@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "electron scripts/smoke.cjs",
+    "doctor": "electron out/main/doctor.js",
     "lint": "eslint src tests --ext .ts,.tsx",
     "package": "npm run build && electron-builder",
     "package:win": "npm run build && electron-builder --win",

@@ -134,6 +134,18 @@ async function main() {
   await sleep(600)
   await cdp.screenshot(join(OUT_DIR, '05-size-question.png'))
 
+  // The connection check, with whatever eBay actually answers.
+  await cdp.evaluate(`
+    (() => {
+      const button = [...document.querySelectorAll('button')]
+        .find((b) => b.textContent.includes('Verbindung prüfen'))
+      if (!button) throw new Error('diagnostics button not found')
+      button.click()
+      return true
+    })()`)
+  await sleep(4000) // let the checks finish
+  await cdp.screenshot(join(OUT_DIR, '06-diagnostics.png'))
+
   cdp.close()
   console.log('CAPTURE DONE')
 }

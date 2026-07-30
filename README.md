@@ -91,13 +91,21 @@ npm run dev
 
 ### eBay credentials
 
-1. Create an application at <https://developer.ebay.com> and copy the
-   App ID (client id), Cert ID (client secret) and RuName.
+**→ Full walkthrough: [docs/SETUP-EBAY.md](docs/SETUP-EBAY.md)** — including
+which APIs need extra approval and what it all costs (the APIs are free).
+
+Short version:
+
+1. Create an application at <https://developer.ebay.com> (free) and copy
+   the App ID (client id), Cert ID (client secret) and RuName. You need
+   your own developer account — a customer cannot transfer API access,
+   he only grants your app permission to his seller account.
 2. Set the application's **accept URL** to
    `http://localhost:8123/callback` so the desktop login flow can capture
    the authorization code.
 3. Start with `EPAY_EBAY_ENV=sandbox`; switch to `production` once the
    flow is verified.
+4. Run `npm run doctor` — it checks every step and says what is missing.
 
 The first launch shows a sign-in banner and opens a browser for the
 one-time eBay consent. The resulting refresh token is encrypted with
@@ -130,6 +138,7 @@ npm test            # unit tests (no network, no credentials needed)
 npm run typecheck
 npm run lint
 npm run smoke       # boots the built app and checks the IPC bridge and UI
+npm run doctor      # checks the live eBay connection step by step
 ```
 
 Tests use fake eBay and AI backends, so the suite never touches the

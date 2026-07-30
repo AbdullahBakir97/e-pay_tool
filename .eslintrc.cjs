@@ -16,5 +16,10 @@ module.exports = {
       files: ['tests/**/*.ts'],
       rules: { '@typescript-eslint/no-explicit-any': 'off' },
     },
+    {
+      // The doctor is a command-line tool; printing is its whole purpose.
+      files: ['src/main/doctor.ts'],
+      rules: { 'no-console': 'off' },
+    },
   ],
 }

@@ -2,6 +2,7 @@
 
 import type {
   AppStatus,
+  CheckResult,
   Issue,
   PolicyIds,
   PolicyOptions,
@@ -27,6 +28,9 @@ export const IPC = {
   getPolicyIds: 'policies:getSelected',
   setPolicyIds: 'policies:setSelected',
   productsChanged: 'products:changed',
+  runDiagnostics: 'diagnostics:run',
+  runWriteTest: 'diagnostics:writeTest',
+  openMarketSearch: 'market:openSearch',
 } as const
 
 export interface EpayApi {
@@ -46,5 +50,9 @@ export interface EpayApi {
   getPolicies(): Promise<PolicyOptions>
   getPolicyIds(): Promise<PolicyIds>
   setPolicyIds(ids: PolicyIds): Promise<void>
+  runDiagnostics(): Promise<CheckResult[]>
+  runWriteTest(): Promise<CheckResult[]>
+  /** Opens a pre-filled eBay sold-listings search in the real browser. */
+  openMarketSearch(productId: number): Promise<boolean>
   onProductsChanged(listener: () => void): () => void
 }
