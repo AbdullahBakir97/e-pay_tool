@@ -1,0 +1,33 @@
+appId: de.epaytool.app
+productName: ePay Tool
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+
+# No native modules: SQLite comes from Node itself, so there is nothing to
+# rebuild per ABI, unpack from the asar archive, or code-sign separately.
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  category: public.app-category.business
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+linux:
+  target: [AppImage]
