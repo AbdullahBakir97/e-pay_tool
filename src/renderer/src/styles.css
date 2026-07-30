@@ -124,7 +124,7 @@ button.primary:hover:not(:disabled) {
 .main {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 460px;
+  grid-template-columns: 1fr 430px;
   min-height: 0;
 }
 
@@ -145,6 +145,9 @@ button.primary:hover:not(:disabled) {
 table {
   width: 100%;
   border-collapse: collapse;
+  /* Fixed layout so the title column absorbs the spare width instead of
+     pushing Status off the edge and forcing a horizontal scrollbar. */
+  table-layout: fixed;
 }
 
 th,
@@ -155,7 +158,28 @@ td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 340px;
+}
+
+/* SKU, Barcode, (Titel flexes), Preis, Fotos, Status */
+th:nth-child(1),
+td:nth-child(1) {
+  width: 168px;
+}
+th:nth-child(2),
+td:nth-child(2) {
+  width: 142px;
+}
+th:nth-child(4),
+td:nth-child(4) {
+  width: 112px;
+}
+th:nth-child(5),
+td:nth-child(5) {
+  width: 78px;
+}
+th:nth-child(6),
+td:nth-child(6) {
+  width: 126px;
 }
 
 thead th {

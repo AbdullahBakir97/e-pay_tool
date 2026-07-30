@@ -10,6 +10,11 @@ click publishes it. When the product cannot be identified automatically,
 an AI assistant identifies what it can from photos and **asks for the
 missing details** instead of guessing.
 
+📄 **[Product documentation (PDF, German)](docs/ePay-Tool-Dokumentation.pdf)** —
+illustrated walkthrough for the customer.
+
+![The product queue](docs/images/01-queue.png)
+
 ## How it works
 
 ```
@@ -49,6 +54,8 @@ panel:
 This is what handles the hard cases — a front photo of a phone cannot
 reveal which model it is, and a shoe photo without the tongue label
 cannot reveal the size. The app says so rather than inventing an answer.
+
+![Open questions raised by the AI](docs/images/02-ai-questions.png)
 
 Whether a draft may be posted is decided by deterministic rules in
 `src/main/core/quality.ts`, never by the model. The AI only contributes
